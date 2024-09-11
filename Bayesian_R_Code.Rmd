@@ -1,0 +1,699 @@
+---
+title: "Project"
+author: "Shrinidhi Rajesh"
+date: "2023-11-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(readxl)
+library(tidyverse)
+library(rjags)
+library(lubridate)
+library(corrplot)
+```
+
+```{r, Import Data}
+All2020 <- read_excel("Bayesian Project Data Set-Clean (1).xlsx", sheet="2020-Pred-All")
+
+ExCovid2020 <- read_excel("Bayesian Project Data Set-Clean (1).xlsx", sheet="2020-Pred-ExCovid")
+
+All2021 <- read_excel("Bayesian Project Data Set-Clean (1).xlsx", sheet="2021-Pred-All")
+
+ExCovid2021 <- read_excel("Bayesian Project Data Set-Clean (1).xlsx", sheet="2021-Pred-ExCovid")
+
+All2022 <- read_excel("Bayesian Project Data Set-Clean (1).xlsx", sheet="2022-Pred-All")
+
+ExCovid2022 <- read_excel("Bayesian Project Data Set-Clean (1).xlsx", sheet="2022-Pred-ExCovid")
+
+```
+
+```{r}
+All_2020 <- data.frame("Week Ending Date"=All2020$`Week Ending Date`,"State"= All2020$State,"Observed Number"= All2020$`Observed Number`,"Upper Bound Threshold"= All2020$`Upper Bound Threshold`,"Average Expected Count"= All2020$`Average Expected Count`,check.names=FALSE)
+
+ExCovid_2020 <- data.frame("Week Ending Date"=ExCovid2020$`Week Ending Date`,"State"= ExCovid2020$State,"Observed Number"= ExCovid2020$`Observed Number`,"Upper Bound Threshold"= ExCovid2020$`Upper Bound Threshold`,"Average Expected Count"= ExCovid2020$`Average Expected Count`,check.names=FALSE)
+
+All_2021 <- data.frame("Week Ending Date"=All2021$`Week Ending Date`,"State"= All2021$State,"Observed Number"= All2021$`Observed Number`,"Upper Bound Threshold"= All2021$`Upper Bound Threshold`,"Average Expected Count"= All2021$`Average Expected Count`,check.names=FALSE)
+
+ExCovid_2021 <- data.frame("Week Ending Date"=ExCovid2021$`Week Ending Date`,"State"= ExCovid2021$State,"Observed Number"= ExCovid2021$`Observed Number`,"Upper Bound Threshold"= ExCovid2021$`Upper Bound Threshold`,"Average Expected Count"= ExCovid2021$`Average Expected Count`,check.names=FALSE)
+
+All_2022 <- data.frame("Week Ending Date"=All2022$`Week Ending Date`,"State"= All2022$State,"Observed Number"= All2022$`Observed Number`,"Upper Bound Threshold"= All2022$`Upper Bound Threshold`,"Average Expected Count"= All2022$`Average Expected Count`,check.names=FALSE)
+
+ExCovid_2022 <- data.frame("Week Ending Date"= ExCovid2022$`Week Ending Date`,"State"= ExCovid2022$State,"Observed Number"= ExCovid2022$`Observed Number`,"Upper Bound Threshold"= ExCovid2022$`Upper Bound Threshold`,"Average Expected Count"= ExCovid2022$`Average Expected Count`,check.names=FALSE)
+```
+
+```{r, Create Regional Maps}
+West.Region <- c("Colorado", "Idaho", "Montana", "Nevada", "Utah", "Wyoming", "Alaska", "California", "Hawaii", "Oregon", "Washington")
+
+SouthWest.Region <- c("Oklahoma","Arizona","New Mexico", "Texas")
+
+MidWest.Region <- c("Illinois", "Indiana", "Michigan", "Ohio", "Wisconsin", "Iowa", "Kansas", "Minnesota", "Missouri", "Nebraska", "North Dakota",  "South Dakota")
+
+SouthEast.Region <- c("Florida", "Georgia", "Maryland", "North Carolina", "South Carolina", "Virginia", "District of Columbia", "West Virginia", "Alabama", "Kentucky", "Mississippi","Tennessee", "Arkansas", "Louisiana")
+
+NorthEast.Region <- c("Connecticut", "Maine", "Massachusetts", "New Hampshire", "Rhode Island", "Vermont", "New Jersey", "New York","Pennsylvania","Delaware")
+
+```
+
+```{r}
+All_2020$Region <- NA
+All_2021$Region <- NA
+All_2022$Region <- NA
+ExCovid_2020$Region <- NA
+ExCovid_2021$Region <- NA
+ExCovid_2022$Region <- NA
+```
+
+
+
+```{r, West Region}
+WA20 <- All_2020$State %in% West.Region
+All_2020$Region[WA20] <- "West"
+
+WA21 <- All_2021$State %in% West.Region
+All_2021$Region[WA21] <- "West"
+
+WA22 <- All_2022$State %in% West.Region
+All_2022$Region[WA22] <- "West"
+
+WE20 <- ExCovid_2020$State %in% West.Region
+ExCovid_2020$Region[WE20] <- "West"
+
+WE21 <- ExCovid_2021$State %in% West.Region
+ExCovid_2021$Region[WE21] <- "West"
+
+WE22 <- All_2022$State %in% West.Region
+ExCovid_2022$Region[WE22] <- "West"
+```
+
+
+```{r, SouthWest Region}
+SWA20 <- All_2020$State %in% SouthWest.Region
+All_2020$Region[SWA20] <- "SouthWest"
+
+SWA21 <- All_2021$State %in% SouthWest.Region
+All_2021$Region[SWA21] <- "SouthWest"
+
+SWA22 <- All_2022$State %in% SouthWest.Region
+All_2022$Region[SWA22] <- "SouthWest"
+
+SWE20 <- ExCovid_2020$State %in% SouthWest.Region
+ExCovid_2020$Region[SWE20] <- "SouthWest"
+
+SWE21 <- ExCovid_2021$State %in% SouthWest.Region
+ExCovid_2021$Region[SWE21] <- "SouthWest"
+
+SWE22 <- All_2022$State %in% SouthWest.Region
+ExCovid_2022$Region[SWE22] <- "SouthWest"
+```
+
+
+```{r, MidWest Region}
+MWA20 <- All_2020$State %in% MidWest.Region
+All_2020$Region[MWA20] <- "MidWest"
+
+MWA21 <- All_2021$State %in% MidWest.Region
+All_2021$Region[MWA21] <- "MidWest"
+
+MWA22 <- All_2022$State %in% MidWest.Region
+All_2022$Region[MWA22] <- "MidWest"
+
+MWE20 <- ExCovid_2020$State %in% MidWest.Region
+ExCovid_2020$Region[MWE20] <- "MidWest"
+
+MWE21 <- ExCovid_2021$State %in% MidWest.Region
+ExCovid_2021$Region[MWE21] <- "MidWest"
+
+MWE22 <- All_2022$State %in% MidWest.Region
+ExCovid_2022$Region[MWE22] <- "MidWest"
+```
+
+
+```{r, South East Region}
+SEA20 <- All_2020$State %in% SouthEast.Region
+All_2020$Region[SEA20] <- "SouthEast"
+
+SEA21 <- All_2021$State %in% SouthEast.Region
+All_2021$Region[SEA21] <- "SouthEast"
+
+SEA22 <- All_2022$State %in% SouthEast.Region
+All_2022$Region[SEA22] <- "SouthEast"
+
+SEE20 <- ExCovid_2020$State %in% SouthEast.Region
+ExCovid_2020$Region[SEE20] <- "SouthEast"
+
+SEE21 <- ExCovid_2021$State %in% SouthEast.Region
+ExCovid_2021$Region[SEE21] <- "SouthEast"
+
+SEE22 <- All_2022$State %in% SouthEast.Region
+ExCovid_2022$Region[SEE22] <- "SouthEast"
+```
+
+
+```{r, North East Region}
+NEA20 <- All_2020$State %in% NorthEast.Region
+All_2020$Region[NEA20] <- "NorthEast"
+
+NEA21 <- All_2021$State %in% NorthEast.Region
+All_2021$Region[NEA21] <- "NorthEast"
+
+NEA22 <- All_2022$State %in% NorthEast.Region
+All_2022$Region[NEA22] <- "NorthEast"
+
+NEE20 <- ExCovid_2020$State %in% NorthEast.Region
+ExCovid_2020$Region[NEE20] <- "NorthEast"
+
+NEE21 <- ExCovid_2021$State %in% NorthEast.Region
+ExCovid_2021$Region[NEE21] <- "NorthEast"
+
+NEE22 <- All_2022$State %in% NorthEast.Region
+ExCovid_2022$Region[NEE22] <- "NorthEast"
+```
+
+
+```{r, Apply Filters to Seperate Regions}
+W.All2020 <- dplyr::filter(All_2020, Region %in% "West")
+SW.All2020 <- dplyr::filter(All_2020, Region %in% "SouthWest")
+MW.All2020 <- dplyr::filter(All_2020, Region %in% "MidWest")
+SE.All2020 <- dplyr::filter(All_2020, Region %in% "SouthEast")
+NE.All2020 <- dplyr::filter(All_2020, Region %in% "NorthEast")
+
+W.All2021 <- dplyr::filter(All_2021, Region %in% "West")
+SW.All2021 <- dplyr::filter(All_2021, Region %in% "SouthWest")
+MW.All2021 <- dplyr::filter(All_2021, Region %in% "MidWest")
+SE.All2021 <- dplyr::filter(All_2021, Region %in% "SouthEast")
+NE.All2021 <- dplyr::filter(All_2021, Region %in% "NorthEast")
+
+W.All2022 <- dplyr::filter(All_2022, Region %in% "West")
+SW.All2022 <- dplyr::filter(All_2022, Region %in% "SouthWest")
+MW.All2022 <- dplyr::filter(All_2022, Region %in% "MidWest")
+SE.All2022 <- dplyr::filter(All_2022, Region %in% "SouthEast")
+NE.All2022 <- dplyr::filter(All_2022, Region %in% "NorthEast")
+
+
+W.Ex2020 <- dplyr::filter(ExCovid_2020, Region %in% "West")
+SW.Ex2020 <- dplyr::filter(ExCovid_2020, Region %in% "SouthWest")
+MW.Ex2020 <- dplyr::filter(ExCovid_2020, Region %in% "MidWest")
+SE.Ex2020 <- dplyr::filter(ExCovid_2020, Region %in% "SouthEast")
+NE.Ex2020 <- dplyr::filter(ExCovid_2020, Region %in% "NorthEast")
+
+W.Ex2021 <- dplyr::filter(ExCovid_2021, Region %in% "West")
+SW.Ex2021 <- dplyr::filter(ExCovid_2021, Region %in% "SouthWest")
+MW.Ex2021 <- dplyr::filter(ExCovid_2021, Region %in% "MidWest")
+SE.Ex2021 <- dplyr::filter(ExCovid_2021, Region %in% "SouthEast")
+NE.Ex2021 <- dplyr::filter(ExCovid_2021, Region %in% "NorthEast")
+
+W.Ex2022 <- dplyr::filter(ExCovid_2022, Region %in% "West")
+SW.Ex2022 <- dplyr::filter(ExCovid_2022, Region %in% "SouthWest")
+MW.Ex2022 <- dplyr::filter(ExCovid_2022, Region %in% "MidWest")
+SE.Ex2022 <- dplyr::filter(ExCovid_2022, Region %in% "SouthEast")
+NE.Ex2022 <- dplyr::filter(ExCovid_2022, Region %in% "NorthEast")
+```
+
+
+
+```{r, Observation for 2020-2021 by Region}
+West.All <- rbind(W.All2020,W.All2021)
+West.All <- select(West.All,-2,-6)
+
+SouthWest.All <- rbind(SW.All2020,SW.All2021)
+SouthWest.All <- select(SouthWest.All,-2,-6)
+
+MidWest.All <- rbind(MW.All2020,MW.All2021)
+MidWest.All <- select(MidWest.All,-2,-6)
+
+SouthEast.All <- rbind(SE.All2020,SE.All2021)
+SouthEast.All <- select(SouthEast.All,-2,-6)
+
+NorthEast.All <- rbind(NE.All2020,NE.All2021)
+NorthEast.All <- select(NorthEast.All,-2,-6)
+
+
+West.Ex <- rbind(W.Ex2020,W.Ex2021)
+West.Ex <- select(West.Ex,-2,-6)
+
+SouthWest.Ex <- rbind(SW.Ex2020,SW.Ex2021)
+SouthWest.Ex <- select(SouthWest.Ex,-2,-6)
+
+MidWest.Ex <- rbind(MW.Ex2020,MW.Ex2021)
+MidWest.Ex <- select(MidWest.Ex,-2,-6)
+
+SouthEast.Ex <- rbind(SE.Ex2020,SE.Ex2021)
+SouthEast.Ex <- select(SouthEast.Ex,-2,-6)
+
+NorthEast.Ex <- rbind(NE.Ex2020,NE.Ex2021)
+NorthEast.Ex <- select(NorthEast.Ex,-2,-6)
+
+```
+
+
+```{r, 2022 Observations (To Be Predicted)}
+West.AllPred <- select(W.All2022,-2,-6)
+SouthWest.AllPred <- select(SW.All2022,-2,-6)
+MidWest.AllPred <- select(MW.All2022,-2,-6)
+SouthEast.AllPred <- select(SE.All2022,-2,-6)
+NorthEast.AllPred <- select(NE.All2022,-2,-6)
+
+
+West.ExPred <- select(W.Ex2022,-2,-6)
+SouthWest.ExPred <- select(SW.Ex2022,-2,-6)
+MidWest.ExPred <- select(MW.Ex2022,-2,-6)
+SouthEast.ExPred <- select(SE.Ex2022,-2,-6)
+NorthEast.ExPred <- select(NE.Ex2022,-2,-6)
+
+```
+
+
+```{r, Combine States/Week for Aggregrate Regions}
+ColN <- c("Week Ending Date", "Observed Number", "Upper Bound Threshold","Average Expected Count")
+
+
+West.All[,1] <- as.Date(West.All[,1])
+
+West.All <- aggregate(cbind(West.All[,2],West.All[,3],West.All[,4])~West.All[,1], data=West.All,FUN=sum)
+colnames(West.All) <- ColN
+
+
+SouthWest.All[,1] <- as.Date(SouthWest.All[,1])
+
+SouthWest.All <- aggregate(cbind(SouthWest.All[,2],SouthWest.All[,3],SouthWest.All[,4])~SouthWest.All[,1], data=SouthWest.All,FUN=sum)
+colnames(SouthWest.All) <- ColN
+
+  
+MidWest.All[,1] <- as.Date(MidWest.All[,1])
+
+MidWest.All <- aggregate(cbind(MidWest.All[,2],MidWest.All[,3],MidWest.All[,4])~MidWest.All[,1], data=MidWest.All,FUN=sum)
+colnames(MidWest.All) <- ColN 
+
+  
+SouthEast.All[,1] <- as.Date(SouthEast.All[,1])
+
+SouthEast.All <- aggregate(cbind(SouthEast.All[,2],SouthEast.All[,3],SouthEast.All[,4])~SouthEast.All[,1], data=SouthEast.All,FUN=sum)
+colnames(SouthEast.All) <- ColN 
+  
+  
+NorthEast.All[,1] <- as.Date(NorthEast.All[,1])
+
+NorthEast.All <- aggregate(cbind(NorthEast.All[,2],NorthEast.All[,3],NorthEast.All[,4])~NorthEast.All[,1], data=NorthEast.All,FUN=sum)
+colnames(NorthEast.All) <- ColN
+
+
+West.Ex[,1] <- as.Date(West.Ex[,1])
+
+West.Ex <- aggregate(cbind(West.Ex[,2],West.Ex[,3],West.Ex[,4])~West.Ex[,1], data=West.Ex,FUN=sum)
+colnames(West.Ex) <- ColN
+
+
+SouthWest.Ex[,1] <- as.Date(SouthWest.Ex[,1])
+
+SouthWest.Ex <- aggregate(cbind(SouthWest.Ex[,2],SouthWest.Ex[,3],SouthWest.Ex[,4])~SouthWest.Ex[,1], data=SouthWest.Ex,FUN=sum)
+colnames(SouthWest.Ex) <- ColN
+
+
+MidWest.Ex[,1] <- as.Date(MidWest.Ex[,1])
+
+MidWest.Ex <- aggregate(cbind(MidWest.Ex[,2],MidWest.Ex[,3],MidWest.Ex[,4])~MidWest.Ex[,1], data=MidWest.Ex,FUN=sum)
+colnames(MidWest.Ex) <- ColN
+
+
+SouthEast.Ex[,1] <- as.Date(SouthEast.Ex[,1])
+
+SouthEast.Ex <- aggregate(cbind(SouthEast.Ex[,2],SouthEast.Ex[,3],SouthEast.Ex[,4])~SouthEast.Ex[,1], data=SouthEast.Ex,FUN=sum)
+colnames(SouthEast.Ex) <- ColN 
+
+
+NorthEast.Ex[,1] <- as.Date(NorthEast.Ex[,1])
+
+NorthEast.Ex <- aggregate(cbind(NorthEast.Ex[,2],NorthEast.Ex[,3],NorthEast.Ex[,4])~NorthEast.Ex[,1], data=NorthEast.Ex,FUN=sum)
+colnames(NorthEast.Ex) <- ColN
+
+```
+
+
+```{r, Aggregate the Prediction Dataset}
+
+West.AllPred[,1] <- as.Date(West.AllPred[,1])
+
+West.AllPred <- aggregate(cbind(West.AllPred[,2],West.AllPred[,3],West.AllPred[,4])~West.AllPred[,1], data=West.AllPred,FUN=sum)
+colnames(West.AllPred) <- ColN
+
+
+SouthWest.AllPred[,1] <- as.Date(SouthWest.AllPred[,1])
+
+SouthWest.AllPred <- aggregate(cbind(SouthWest.AllPred[,2],SouthWest.AllPred[,3],SouthWest.AllPred[,4])~SouthWest.AllPred[,1], data=SouthWest.AllPred,FUN=sum)
+colnames(SouthWest.AllPred) <- ColN
+
+  
+MidWest.AllPred[,1] <- as.Date(MidWest.AllPred[,1])
+
+MidWest.AllPred <- aggregate(cbind(MidWest.AllPred[,2],MidWest.AllPred[,3],MidWest.AllPred[,4])~MidWest.AllPred[,1], data=MidWest.AllPred,FUN=sum)
+colnames(MidWest.AllPred) <- ColN 
+
+  
+SouthEast.AllPred[,1] <- as.Date(SouthEast.AllPred[,1])
+
+SouthEast.AllPred <- aggregate(cbind(SouthEast.AllPred[,2],SouthEast.AllPred[,3],SouthEast.AllPred[,4])~SouthEast.AllPred[,1], data=SouthEast.AllPred,FUN=sum)
+colnames(SouthEast.AllPred) <- ColN 
+  
+  
+NorthEast.AllPred[,1] <- as.Date(NorthEast.AllPred[,1])
+
+NorthEast.AllPred <- aggregate(cbind(NorthEast.AllPred[,2],NorthEast.AllPred[,3],NorthEast.AllPred[,4])~NorthEast.AllPred[,1], data=NorthEast.AllPred,FUN=sum)
+colnames(NorthEast.AllPred) <- ColN
+
+```
+
+
+```{r, Save Results}
+save(West.All, SouthWest.All,MidWest.All,SouthEast.All,NorthEast.All,West.Ex,SouthWest.Ex,MidWest.Ex,SouthEast.Ex,NorthEast.Ex,West.AllPred, SouthWest.AllPred,MidWest.AllPred,SouthEast.AllPred,NorthEast.AllPred,West.ExPred,SouthWest.ExPred,MidWest.ExPred,SouthEast.ExPred,NorthEast.ExPred, file = "ProjectDataSets.RData")
+```
+
+
+```{r, Preparing for Exploratory}
+X <- cbind(West.All[,4],SouthWest.All[,4],MidWest.All[,4],SouthEast.All[,4],NorthEast.All[,4])
+colnames(X) <- c("West","SouthWest","Midwest","SouthEast","NorthEast")
+
+
+Y <- cbind(West.All[,2],SouthWest.All[,2],MidWest.All[,2],SouthEast.All[,2],NorthEast.All[,2])
+colnames(Y) <- c("West","SouthWest","Midwest","SouthEast","NorthEast")
+
+
+```
+
+
+```{r, Correlation Plots}
+
+CorrWest <- cor(West.All[2:4])
+colnames(CorrWest) <- c("OBS","UBT","AEC")
+corrplot.mixed(CorrWest, title="West Region Correlation")
+
+CorrSouthWest <- cor(SouthWest.All[2:4])
+colnames(CorrSouthWest) <- c("OBS","UBT","AEC")
+corrplot.mixed(CorrSouthWest, title="South West Region Correlation")
+
+CorrMidWest <- cor(MidWest.All[2:4])
+colnames(CorrMidWest) <- c("OBS","UBT","AEC")
+corrplot.mixed(CorrMidWest, title="Mid West Region Correlation")
+
+CorrSouthEast <- cor(SouthEast.All[2:4])
+colnames(CorrSouthEast) <- c("OBS","UBT","AEC")
+corrplot.mixed(CorrSouthEast, title="South East Region Correlation")
+
+CorrNorthEast <- cor(NorthEast.All[2:4])
+colnames(CorrNorthEast) <- c("OBS","UBT","AEC")
+corrplot.mixed(CorrNorthEast, title="North East Region Correlation")
+
+```
+
+
+```{r, Plots of Regions}
+ggplot(NULL,aes(x=X[,1],y=Y[,1]))+geom_point()+geom_smooth(method="lm",se=FALSE)+ggtitle("West Region")+
+  labs(x="Average Expected Count",y="Observed Number")
+
+ggplot(NULL,aes(x=X[,2],y=Y[,2]))+geom_point()+geom_smooth(method="lm",se=FALSE)+ggtitle("South West Region")+
+  labs(x="Average Expected Count",y="Observed Number")
+
+ggplot(NULL,aes(x=X[,3],y=Y[,3]))+geom_point()+geom_smooth(method="lm",se=FALSE)+ggtitle("Mid-West Region")+
+  labs(x="Average Expected Count",y="Observed Number")
+
+ggplot(NULL,aes(x=X[,4],y=Y[,4]))+geom_point()+geom_smooth(method="lm",se=FALSE)+ggtitle("South East Region")+
+  labs(x="Average Expected Count",y="Observed Number")
+
+ggplot(NULL,aes(x=X[,5],y=Y[,5]))+geom_point()+geom_smooth(method="lm",se=FALSE)+ ggtitle("North East Region")+
+  labs(x="Average Expected Count",y="Observed Number")
+
+
+
+
+```
+
+
+```{r}
+hist(X[,1],main="West Region", xlab="Average Expected Count", col = 'chocolate2', breaks = seq(min(X[,1]), max(X[,1]), length.out = 21))
+
+hist(Y[,1],main="West Region", xlab="Observed Count", col = 'chocolate2', breaks = seq(min(Y[,1]), max(Y[,1]), length.out = 21))
+
+```
+
+```{r}
+hist(X[,2],main="South West Region", xlab="Average Expected Count", col = 'goldenrod', breaks = seq(min(X[,2]), max(X[,2]), length.out = 21))
+
+hist(Y[,2],main="South West Region", xlab="Observed Count", col = 'goldenrod', breaks = seq(min(Y[,2]), max(Y[,2]), length.out = 21))
+```
+
+```{r}
+hist(X[,3],main="Mid-West Region", xlab="Average Expected Count", col = 'lightgreen', breaks = seq(min(X[,3]), max(X[,3]), length.out = 21))
+
+hist(Y[,3],main="Mid-West Region", xlab="Observed Count", col = 'lightgreen', breaks = seq(min(Y[,3]), max(Y[,3]), length.out = 21))
+```
+
+```{r}
+hist(X[,4],main="South East Region", xlab="Average Expected Count", col = 'orange', breaks = seq(min(X[,4]), max(X[,4]), length.out = 21))
+
+hist(Y[,4],main="South East Region", xlab="Observed Count", col = 'orange', breaks = seq(min(Y[,4]), max(Y[,4]), length.out = 21))
+```
+
+```{r}
+hist(X[,5],main="North East Region", xlab="Average Expected Count", col = 'lightblue', breaks = seq(min(X[,5]), max(X[,5]), length.out = 21))
+
+hist(Y[,5],main="North East Region", xlab="Observed Count", col = 'lightblue', breaks = seq(min(Y[,5]), max(Y[,5]), length.out = 21))
+```
+
+
+```{r, Correlation of Observed/Average Expected Count}
+West.Cor <- cor(X[,1],Y[,1])
+SouthWest.Cor <- cor(X[,2],Y[,2]) 
+MidWest.Cor <- cor(X[,3],Y[,3]) 
+SouthEast.Cor <- cor(X[,4],Y[,4]) 
+NorthEast.Cor <- cor(X[,5],Y[,5])
+
+CorrTable <- data.frame(West = West.Cor,SouthWest=SouthWest.Cor, MidWest=MidWest.Cor, SouthEast=SouthEast.Cor, NorthEast=NorthEast.Cor)
+CorrTable
+
+```
+
+
+
+```{r, Preparing for RJAGS Modeling}
+n <- nrow(Y)
+
+Y1 <- Y[,1]
+Y2 <- Y[,2]
+Y3 <- Y[,3]
+Y4 <- Y[,4]
+Y5 <- Y[,5]
+
+X1 <- X[,1]
+X2 <- X[,2]
+X3 <- X[,3]
+X4 <- X[,4]
+X5 <- X[,5]
+
+data1 <- list(X1=X1,Y1=Y1,n=n)
+data2 <- list(X2=X2,Y2=Y2,n=n)
+data3 <- list(X3=X3,Y3=Y3,n=n)
+data4 <- list(X4=X4,Y4=Y4,n=n)
+data5 <- list(X5=X5,Y5=Y5,n=n)
+
+
+```
+
+
+
+```{r, Model 1 JAGS-West}
+model1 <- textConnection("model{
+  for(i in 1:n){
+    Y1[i] ~ dnorm(beta1+beta2*X1[i],tau)
+  }                             
+  tau ~ dgamma(0.01,0.01)
+  beta1 ~ dnorm(0,0.0001)
+  beta2 ~ dnorm(0,0.0001)
+  
+  
+}")
+```
+
+
+
+```{r, Model 2 JAGS-South West}
+model2 <- textConnection("model{
+  for(i in 1:n){
+    Y2[i] ~ dnorm(beta1+beta2*X2[i],tau2)
+  }                             
+  tau2 ~ dgamma(0.01,0.01)
+  beta1 ~ dnorm(0,0.0001)
+  beta2 ~ dnorm(0,0.0001)
+}")
+```
+
+
+
+```{r, Model 3 JAGS-Mid West}
+model3 <- textConnection("model{
+  for(i in 1:n){
+    Y3[i] ~ dnorm(beta1 + beta2*X3[i],tau3)
+  }                             
+  tau3 ~ dgamma(0.01,0.01)
+  beta1 ~ dnorm(0,0.0001)
+  beta2 ~ dnorm(0,0.0001)
+}")
+```
+
+
+
+```{r, Model 4 JAGS-South East}
+model4 <- textConnection("model{
+  for(i in 1:n){
+    Y4[i] ~ dnorm(beta1+beta2*X4[i],tau4)
+  }                             
+  tau4 ~ dgamma(0.01,0.01)
+  beta1 ~ dnorm(0,0.0001)
+  beta2 ~ dnorm(0,0.0001)
+}")
+```
+
+
+```{r, Model 5 JAGS- North East}
+model5 <- textConnection("model{
+  #Likelihood
+  for(i in 1:n){
+    Y5[i] ~ dnorm(beta1+beta2*X5[i],tau5)
+  }                             
+  tau5 ~ dgamma(0.01,0.01)
+  beta1 ~ dnorm(0,0.0001)
+  beta2 ~ dnorm(0,0.0001)
+}")
+```
+
+
+```{r Fitting Model 1 in JAGS}
+m1 <- jags.model(model1, data=data1, n.chains = 4, quiet=TRUE)
+
+update(m1, 10000, progress.bar='none')
+
+#Generate post burn-in samples
+params <- c("beta1","beta2")
+s1 <- coda.samples(m1,variable.names=params,n.iter=15000,progress.bar='none')
+```
+
+```{r Fitting Model 2 in JAGS}
+m2 <- jags.model(model2, data=data2, n.chains = 4, quiet=TRUE)
+
+update(m2, 10000, progress.bar='none')
+
+#Generate post burn-in samples
+s2 <- coda.samples(m2,variable.names=params,n.iter=15000,progress.bar='none')
+```
+
+```{r Fitting Model 3 in JAGS}
+m3 <- jags.model(model3, data=data3, n.chains = 4, quiet=TRUE)
+
+update(m3, 10000, progress.bar='none')
+
+#Generate post burn-in samples
+s3 <- coda.samples(m3,variable.names=params,n.iter=15000,progress.bar='none')
+```
+
+```{r Fitting Model 4 in JAGS}
+m4 <- jags.model(model4, data=data4, n.chains = 4, quiet=TRUE)
+
+update(m4, 10000, progress.bar='none')
+
+#Generate post burn-in samples
+s4 <- coda.samples(m4,variable.names=params,n.iter=15000,progress.bar='none')
+```
+
+```{r Fitting Model 5 in JAGS}
+m5 <- jags.model(model5, data=data5, n.chains = 4, quiet=TRUE)
+
+update(m5, 10000, progress.bar='none')
+
+#Generate post burn-in samples
+s5 <- coda.samples(m5,variable.names=params,n.iter=15000,progress.bar='none')
+```
+
+
+```{r}
+plot(s1,sub="West Region")
+plot(s2,sub="South West Region")
+plot(s3,sub="Mid-West Region")
+plot(s4,sub="South East Region")
+plot(s5,sub="North East Region")
+
+```
+
+```{r, RJAGS Summary}
+summary(s1)
+summary(s2)
+summary(s3)
+summary(s4)
+summary(s5)
+```
+```{r, West 2022 Predictions}
+P1 <- c()
+for (i in 1:53){
+  P1[i] <- mean(s1[[1]][,1])+mean(s1[[1]][,2])*West.AllPred[i,4]
+}
+
+West.PostPred <- cbind(West.AllPred[,2],P1)
+colnames(West.PostPred) <- c("Observed","Predicted")
+```
+
+
+```{r, South West 2022 Predictions}
+P2 <- c()
+for (i in 1:53){
+  P2[i] <- mean(s2[[1]][,1])+mean(s2[[1]][,2])*SouthWest.AllPred[i,4]
+}
+
+SouthWest.PostPred <- cbind(SouthWest.AllPred[,2],P2)
+colnames(SouthWest.PostPred) <- c("Observed","Predicted")
+```
+
+```{r, Mid West 2022 Predictions}
+P3 <- c()
+for (i in 1:53){
+  P3[i] <- mean(s3[[1]][,1])+mean(s3[[1]][,2])*MidWest.AllPred[i,4]
+}
+
+MidWest.PostPred <- cbind(MidWest.AllPred[,2],P3)
+colnames(MidWest.PostPred) <- c("Observed","Predicted")
+```
+
+```{r, South East 2022 Predictions}
+P4 <- c()
+for (i in 1:53){
+  P4[i] <- mean(s4[[1]][,1])+mean(s4[[1]][,2])*SouthEast.AllPred[i,4]
+}
+
+SouthEast.PostPred <- cbind(SouthEast.AllPred[,2],P4)
+colnames(SouthEast.PostPred) <- c("Observed","Predicted")
+```
+
+```{r, North East 2022 Predictions}
+P5 <- c()
+for (i in 1:53){
+  P5[i] <- mean(s5[[1]][,1])+mean(s5[[1]][,2])*NorthEast.AllPred[i,4]
+}
+
+NorthEast.PostPred <- cbind(NorthEast.AllPred[,2],P5)
+colnames(NorthEast.PostPred) <- c("Observed","Predicted")
+```
+
+```{r, Save Prediction Results}
+save(West.PostPred,SouthWest.PostPred,MidWest.PostPred,SouthEast.PostPred,NorthEast.PostPred, file="Region2022Predictions.RData")
+```
+
+
+```{r}
+write.csv(West.PostPred, "west.csv")
+write.csv(SouthWest.PostPred, "southwest.csv")
+write.csv(MidWest.PostPred, "midwest.csv")
+write.csv(SouthEast.PostPred, "southeast.csv")
+write.csv(NorthEast.PostPred, "northeast.csv")
+```
+
