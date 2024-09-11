@@ -1,4 +1,5 @@
 # A Bayesian Analysis of Excess Deaths in the United States
+
 Overview:
 
 This project provides an in-depth examination of excess mortality in the United States during the COVID-19 pandemic, with a focus on all-cause excess deaths between 2020 and 2022. By applying Bayesian statistics and a multiple regression framework, the study aims to estimate excess deaths and uncover key factors contributing to increased mortality. The dataset used spans weekly estimates of observed versus expected deaths, covering various regions in the U.S. and offering insights into the pandemic's broader mortality impact.
